@@ -49,9 +49,9 @@ app.post('/generate-avatar', async (req, res) => {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    // Use FLUX.1-schnell for cartoon avatar generation (text-to-image, free tier)
+    // Use instruct-pix2pix for realistic 3D avatar transformation
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',
+      'https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix',
       {
         method: 'POST',
         headers: {
@@ -59,7 +59,14 @@ app.post('/generate-avatar', async (req, res) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: "cartoon avatar portrait, pixar style character, colorful, friendly face, digital art, high quality",
+          inputs: {
+            image: base64Data,
+            prompt: "Transform this photo into a realistic 3D rendered avatar, smooth skin, soft lighting, professional headshot style, high quality 3D render, realistic proportions, studio lighting"
+          },
+          parameters: {
+            image_guidance_scale: 1.5,
+            guidance_scale: 7.5
+          }
         }),
       }
     );
