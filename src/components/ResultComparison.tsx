@@ -1,22 +1,42 @@
-import React, { Suspense } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Download, RotateCcw } from "lucide-react";
-
-// Lazy load the 3D viewer to avoid SSR issues
-const Model3DViewer = React.lazy(() => import("./Model3DViewer"));
 
 interface ResultComparisonProps {
   originalImage: string;
   avatarImage: string;
-  modelUrl?: string;
   onReset: () => void;
 }
 
 export const ResultComparison: React.FC<ResultComparisonProps> = ({
   avatarImage,
-  modelUrl,
   onReset,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateY = ((x - centerX) / centerX) * 25;
+    const rotateX = ((centerY - y) / centerY) * 25;
+    
+    setTransform({ rotateX, rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setTransform({ rotateX: 0, rotateY: 0 });
+  };
+
   const handleDownload = () => {
     const link = document.createElement("a");
     link.href = avatarImage;
@@ -28,39 +48,57 @@ export const ResultComparison: React.FC<ResultComparisonProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-8 p-6 max-w-2xl mx-auto">
-      <h2 className="text-3xl font-bold text-foreground">Your 3D Avatar is Ready!</h2>
+      <h2 className="text-3xl font-bold text-foreground">Your Avatar is Ready!</h2>
       
-      {/* 3D Model Viewer */}
-      {modelUrl ? (
-        <div className="w-full">
-          <Suspense 
-            fallback={
-              <div className="w-full h-[400px] rounded-2xl bg-muted flex items-center justify-center border-4 border-cyan-400/50">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-muted-foreground">Loading 3D model...</p>
-                </div>
-              </div>
-            }
-          >
-            <Model3DViewer modelUrl={modelUrl} />
-          </Suspense>
-          
-          <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
-            <RotateCcw className="w-4 h-4" />
-            <span>Drag to rotate • Scroll to zoom</span>
-          </div>
-        </div>
-      ) : (
-        // Fallback to 2D avatar if no 3D model
-        <div className="relative">
+      {/* Interactive 3D-style Avatar */}
+      <div 
+        ref={containerRef}
+        className="relative perspective-1000"
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={handleMouseLeave}
+        style={{ perspective: "1000px" }}
+      >
+        <div
+          className="relative transition-transform duration-150 ease-out"
+          style={{
+            transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg)`,
+            transformStyle: "preserve-3d",
+          }}
+        >
           <img
             src={avatarImage}
             alt="Avatar"
             className="w-80 h-80 object-cover rounded-2xl border-4 border-cyan-400/50 shadow-2xl bg-white"
           />
+          
+          {/* Shine effect */}
+          <div 
+            className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300"
+            style={{
+              background: isHovering 
+                ? `linear-gradient(${135 + transform.rotateY}deg, rgba(255,255,255,0.4) 0%, transparent 50%)`
+                : "none",
+              opacity: isHovering ? 1 : 0,
+            }}
+          />
+          
+          {/* Glow effect */}
+          <div 
+            className="absolute -inset-2 rounded-3xl -z-10 transition-all duration-300"
+            style={{
+              background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
+              filter: isHovering ? "blur(20px)" : "blur(15px)",
+              opacity: isHovering ? 0.6 : 0.3,
+            }}
+          />
         </div>
-      )}
+      </div>
+      
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <RotateCcw className="w-4 h-4" />
+        <span>Move mouse over avatar to interact</span>
+      </div>
 
       <div className="flex gap-4 mt-4">
         <Button
