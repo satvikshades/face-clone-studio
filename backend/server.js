@@ -46,7 +46,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     console.log('Starting avatar generation...');
 
-    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
+    // Using Toonify model - creates cartoon/animated style avatars like Bitmoji
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -54,12 +54,10 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // GFPGAN v1.4 - face restoration model
-        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+        // Toonify - cartoon style avatar generator
+        version: "e1e1a3e4aa3aaef7a52a0203d7c6686d1c2a5b4d7a00a0c47e7f9c22c5c16e5e",
         input: {
-          img: image,
-          version: "v1.4",
-          scale: 2,
+          image: image,
         },
       }),
     });
