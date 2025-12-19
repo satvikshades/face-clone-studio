@@ -49,9 +49,9 @@ app.post('/generate-avatar', async (req, res) => {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    // Use instruct-pix2pix for realistic 3D avatar transformation
+    // Use stabilityai/stable-diffusion-xl-refiner for realistic image refinement
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix',
+      'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-refiner-1.0',
       {
         method: 'POST',
         headers: {
@@ -59,12 +59,10 @@ app.post('/generate-avatar', async (req, res) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: {
-            image: base64Data,
-            prompt: "Transform this photo into a realistic 3D rendered avatar, smooth skin, soft lighting, professional headshot style, high quality 3D render, realistic proportions, studio lighting"
-          },
+          inputs: base64Data,
           parameters: {
-            image_guidance_scale: 1.5,
+            prompt: "realistic 3D rendered portrait, smooth skin, professional headshot, studio lighting, high quality digital art",
+            strength: 0.5,
             guidance_scale: 7.5
           }
         }),
