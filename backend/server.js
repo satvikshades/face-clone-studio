@@ -46,8 +46,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     console.log('Starting avatar generation...');
 
-    // Using InstantID for realistic face-to-portrait generation
-    // This model preserves facial identity while creating a professional portrait
+    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -55,16 +54,12 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // InstantID model for identity-preserving portraits
-        version: "ddfc2b08d209f9fa8c1eca692f79a4f41f6e8f2a03e0d1e0d5f3c7c8c9a0b1c2",
+        // GFPGAN v1.4 - face restoration model
+        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
         input: {
-          image: image,
-          prompt: "professional headshot portrait, hyper-realistic, clean background, natural lighting, accurate facial structure, high quality, 4k, detailed skin texture, professional photography",
-          negative_prompt: "cartoon, anime, illustration, painting, drawing, art, sketch, low quality, blurry, distorted face",
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-          ip_adapter_scale: 0.8,
-          controlnet_conditioning_scale: 0.8,
+          img: image,
+          version: "v1.4",
+          scale: 2,
         },
       }),
     });
@@ -72,35 +67,7 @@ app.post('/generate-avatar', async (req, res) => {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Replicate API error:', errorData);
-      
-      // Fallback: Use a simpler face enhancement model
-      console.log('Trying fallback model...');
-      
-      const fallbackResponse = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          // GFPGAN for face enhancement as fallback
-          version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
-          input: {
-            img: image,
-            version: "v1.4",
-            scale: 2,
-          },
-        }),
-      });
-
-      if (!fallbackResponse.ok) {
-        throw new Error('Both primary and fallback models failed');
-      }
-
-      const fallbackPrediction = await fallbackResponse.json();
-      const fallbackResult = await pollForResult(fallbackPrediction.urls.get, REPLICATE_API_TOKEN);
-      
-      return res.json({ avatarUrl: fallbackResult.output });
+      throw new Error('Replicate API request failed: ' + errorData);
     }
 
     const prediction = await response.json();
