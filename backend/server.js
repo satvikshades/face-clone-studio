@@ -49,9 +49,9 @@ app.post('/generate-avatar', async (req, res) => {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    // Use Hugging Face's cartoonizer model (instruction-tuning-sd/cartoonizer)
+    // Use FLUX.1-schnell for cartoon avatar generation (text-to-image, free tier)
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/instruction-tuning-sd/cartoonizer',
+      'https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',
       {
         method: 'POST',
         headers: {
@@ -59,10 +59,7 @@ app.post('/generate-avatar', async (req, res) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: base64Data,
-          parameters: {
-            prompt: "Cartoonize the following image"
-          }
+          inputs: "cartoon avatar portrait, pixar style character, colorful, friendly face, digital art, high quality",
         }),
       }
     );
