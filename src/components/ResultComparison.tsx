@@ -1,39 +1,22 @@
-import React, { useRef, useState } from "react";
+import React, { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Download } from "lucide-react";
+import { RefreshCw, Download, RotateCcw } from "lucide-react";
+
+// Lazy load the 3D viewer to avoid SSR issues
+const Model3DViewer = React.lazy(() => import("./Model3DViewer"));
 
 interface ResultComparisonProps {
   originalImage: string;
   avatarImage: string;
+  modelUrl?: string;
   onReset: () => void;
 }
 
 export const ResultComparison: React.FC<ResultComparisonProps> = ({
   avatarImage,
+  modelUrl,
   onReset,
 }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0 });
-  const [isHovering, setIsHovering] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const rotateX = ((e.clientY - centerY) / (rect.height / 2)) * -15;
-    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
-    
-    setTransform({ rotateX, rotateY });
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
-    setTransform({ rotateX: 0, rotateY: 0 });
-  };
-
   const handleDownload = () => {
     const link = document.createElement("a");
     link.href = avatarImage;
@@ -44,65 +27,40 @@ export const ResultComparison: React.FC<ResultComparisonProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-8 p-6">
-      <h2 className="text-3xl font-bold text-foreground">Your Avatar is Ready!</h2>
+    <div className="flex flex-col items-center gap-8 p-6 max-w-2xl mx-auto">
+      <h2 className="text-3xl font-bold text-foreground">Your 3D Avatar is Ready!</h2>
       
-      {/* 3D Interactive Avatar */}
-      <div 
-        className="perspective-1000"
-        style={{ perspective: "1000px" }}
-      >
-        <div
-          ref={cardRef}
-          onMouseMove={handleMouseMove}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={handleMouseLeave}
-          className="relative cursor-pointer transition-transform duration-200 ease-out"
-          style={{
-            transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg)`,
-            transformStyle: "preserve-3d",
-          }}
-        >
-          {/* Glow effect behind the image */}
-          <div 
-            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 blur-xl opacity-50 transition-opacity duration-300"
-            style={{
-              transform: "translateZ(-20px)",
-              opacity: isHovering ? 0.7 : 0.4,
-            }}
-          />
-          
-          {/* Main avatar image */}
-          <div 
-            className="relative"
-            style={{ transform: "translateZ(20px)" }}
+      {/* 3D Model Viewer */}
+      {modelUrl ? (
+        <div className="w-full">
+          <Suspense 
+            fallback={
+              <div className="w-full h-[400px] rounded-2xl bg-muted flex items-center justify-center border-4 border-cyan-400/50">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-muted-foreground">Loading 3D model...</p>
+                </div>
+              </div>
+            }
           >
-            <img
-              src={avatarImage}
-              alt="Avatar"
-              className="w-80 h-80 object-cover rounded-2xl border-4 border-cyan-400/50 shadow-2xl"
-            />
-            
-            {/* Shine effect on hover */}
-            <div 
-              className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 pointer-events-none"
-              style={{ opacity: isHovering ? 1 : 0 }}
-            />
-          </div>
+            <Model3DViewer modelUrl={modelUrl} />
+          </Suspense>
           
-          {/* Floating label */}
-          <div 
-            className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2 rounded-full text-sm font-semibold text-white shadow-lg"
-            style={{ transform: "translateX(-50%) translateZ(40px)" }}
-          >
-            ✨ Your Avatar
+          <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+            <RotateCcw className="w-4 h-4" />
+            <span>Drag to rotate • Scroll to zoom</span>
           </div>
         </div>
-      </div>
-
-      <p className="text-muted-foreground text-sm mt-2">
-        Move your mouse over the avatar to see the 3D effect
-      </p>
+      ) : (
+        // Fallback to 2D avatar if no 3D model
+        <div className="relative">
+          <img
+            src={avatarImage}
+            alt="Avatar"
+            className="w-80 h-80 object-cover rounded-2xl border-4 border-cyan-400/50 shadow-2xl bg-white"
+          />
+        </div>
+      )}
 
       <div className="flex gap-4 mt-4">
         <Button
