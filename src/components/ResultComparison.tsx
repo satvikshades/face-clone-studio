@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Download, RotateCcw } from "lucide-react";
+import { RefreshCw, Download } from "lucide-react";
 
 interface ResultComparisonProps {
   originalImage: string;
@@ -12,22 +12,19 @@ export const ResultComparison: React.FC<ResultComparisonProps> = ({
   avatarImage,
   onReset,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0 });
   const [isHovering, setIsHovering] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+    if (!cardRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
     
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    const rotateY = ((x - centerX) / centerX) * 25;
-    const rotateX = ((centerY - y) / centerY) * 25;
+    const rotateX = ((e.clientY - centerY) / (rect.height / 2)) * -15;
+    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 15;
     
     setTransform({ rotateX, rotateY });
   };
@@ -47,58 +44,65 @@ export const ResultComparison: React.FC<ResultComparisonProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-8 p-6 max-w-2xl mx-auto">
+    <div className="flex flex-col items-center gap-8 p-6">
       <h2 className="text-3xl font-bold text-foreground">Your Avatar is Ready!</h2>
       
-      {/* Interactive 3D-style Avatar */}
+      {/* 3D Interactive Avatar */}
       <div 
-        ref={containerRef}
-        className="relative perspective-1000"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={handleMouseLeave}
+        className="perspective-1000"
         style={{ perspective: "1000px" }}
       >
         <div
-          className="relative transition-transform duration-150 ease-out"
+          ref={cardRef}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={handleMouseLeave}
+          className="relative cursor-pointer transition-transform duration-200 ease-out"
           style={{
             transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg)`,
             transformStyle: "preserve-3d",
           }}
         >
-          <img
-            src={avatarImage}
-            alt="Avatar"
-            className="w-80 h-80 object-cover rounded-2xl border-4 border-cyan-400/50 shadow-2xl bg-white"
-          />
-          
-          {/* Shine effect */}
+          {/* Glow effect behind the image */}
           <div 
-            className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300"
+            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 blur-xl opacity-50 transition-opacity duration-300"
             style={{
-              background: isHovering 
-                ? `linear-gradient(${135 + transform.rotateY}deg, rgba(255,255,255,0.4) 0%, transparent 50%)`
-                : "none",
-              opacity: isHovering ? 1 : 0,
+              transform: "translateZ(-20px)",
+              opacity: isHovering ? 0.7 : 0.4,
             }}
           />
           
-          {/* Glow effect */}
+          {/* Main avatar image */}
           <div 
-            className="absolute -inset-2 rounded-3xl -z-10 transition-all duration-300"
-            style={{
-              background: "linear-gradient(135deg, #06b6d4, #3b82f6)",
-              filter: isHovering ? "blur(20px)" : "blur(15px)",
-              opacity: isHovering ? 0.6 : 0.3,
-            }}
-          />
+            className="relative"
+            style={{ transform: "translateZ(20px)" }}
+          >
+            <img
+              src={avatarImage}
+              alt="Avatar"
+              className="w-80 h-80 object-cover rounded-2xl border-4 border-cyan-400/50 shadow-2xl"
+            />
+            
+            {/* Shine effect on hover */}
+            <div 
+              className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 pointer-events-none"
+              style={{ opacity: isHovering ? 1 : 0 }}
+            />
+          </div>
+          
+          {/* Floating label */}
+          <div 
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2 rounded-full text-sm font-semibold text-white shadow-lg"
+            style={{ transform: "translateX(-50%) translateZ(40px)" }}
+          >
+            ✨ Your Avatar
+          </div>
         </div>
       </div>
-      
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-        <RotateCcw className="w-4 h-4" />
-        <span>Move mouse over avatar to interact</span>
-      </div>
+
+      <p className="text-muted-foreground text-sm mt-2">
+        Move your mouse over the avatar to see the 3D effect
+      </p>
 
       <div className="flex gap-4 mt-4">
         <Button

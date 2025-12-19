@@ -64,7 +64,7 @@ export const AvatarGenerator: React.FC = () => {
             AI Avatar Generator
           </h1>
           <p className="text-muted-foreground mb-8 text-center max-w-md">
-            Capture your photo and let AI create your avatar
+            Capture your photo and let AI create a hyper-realistic portrait avatar
           </p>
           <WebcamCapture onCapture={handleCapture} />
         </div>
@@ -72,10 +72,10 @@ export const AvatarGenerator: React.FC = () => {
 
       {state === "scanning" && <ScanningOverlay imageSrc={capturedImage} />}
 
-      {state === "generating" && <AILoader text="Creating Avatar" />}
+      {state === "generating" && <AILoader text="Generating" />}
 
       {state === "result" && (
-        <div className="flex items-center justify-center min-h-screen py-8">
+        <div className="flex items-center justify-center min-h-screen">
           <ResultComparison
             originalImage={capturedImage}
             avatarImage={avatarImage}

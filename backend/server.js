@@ -3,15 +3,17 @@
  * 
  * Setup Instructions:
  * 1. Navigate to the /backend folder
- * 2. Run: npm install
- * 3. Run: node server.js
+ * 2. Run: npm init -y
+ * 3. Run: npm install express cors dotenv replicate
+ * 4. Create a .env file with: REPLICATE_API_TOKEN=your_token_here
+ * 5. Run: node server.js
  * 
- * No external API keys required!
+ * Get your Replicate API token at: https://replicate.com/account/api-tokens
  */
 
 const express = require('express');
 const cors = require('cors');
-const { createCanvas, loadImage } = require('canvas');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,32 +27,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Add white background to image
-async function addWhiteBackground(imageBase64) {
-  console.log('Adding white background...');
-  
-  // Remove data URL prefix if present
-  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  const buffer = Buffer.from(base64Data, 'base64');
-  
-  // Load the image
-  const image = await loadImage(buffer);
-  
-  // Create canvas with white background
-  const canvas = createCanvas(image.width, image.height);
-  const ctx = canvas.getContext('2d');
-  
-  // Fill with white background
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Draw the image on top
-  ctx.drawImage(image, 0, 0);
-  
-  // Return as base64
-  return canvas.toDataURL('image/png');
-}
-
 // Avatar generation endpoint
 app.post('/generate-avatar', async (req, res) => {
   try {
@@ -60,21 +36,81 @@ app.post('/generate-avatar', async (req, res) => {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    console.log('Processing avatar...');
+    const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+    
+    if (!REPLICATE_API_TOKEN) {
+      return res.status(500).json({ 
+        error: 'REPLICATE_API_TOKEN not configured. Add it to your .env file.' 
+      });
+    }
 
-    // Add white background
-    const processedImage = await addWhiteBackground(image);
-    console.log('Avatar processed successfully');
+    console.log('Starting avatar generation...');
 
-    res.json({ 
-      avatarUrl: processedImage,
+    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        // GFPGAN v1.4 - face restoration model
+        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+        input: {
+          img: image,
+          version: "v1.4",
+          scale: 2,
+        },
+      }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Replicate API error:', errorData);
+      throw new Error('Replicate API request failed: ' + errorData);
+    }
+
+    const prediction = await response.json();
+    
+    // Poll for the result
+    const result = await pollForResult(prediction.urls.get, REPLICATE_API_TOKEN);
+    
+    if (result.status === 'failed') {
+      throw new Error(result.error || 'Generation failed');
+    }
+
+    const avatarUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+    
+    console.log('Avatar generated successfully:', avatarUrl);
+    res.json({ avatarUrl });
 
   } catch (error) {
     console.error('Error generating avatar:', error);
     res.status(500).json({ error: error.message || 'Failed to generate avatar' });
   }
 });
+
+// Helper function to poll for prediction result
+async function pollForResult(url, token, maxAttempts = 60) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'succeeded' || result.status === 'failed') {
+      return result;
+    }
+    
+    console.log(`Polling attempt ${i + 1}/${maxAttempts}, status: ${result.status}`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  
+  throw new Error('Timeout waiting for prediction result');
+}
 
 app.listen(PORT, () => {
   console.log(`
@@ -84,6 +120,8 @@ Endpoints:
   GET  /health           - Health check
   POST /generate-avatar  - Generate avatar from base64 image
 
-No API keys required! Just run: node server.js
+Make sure to:
+1. Set REPLICATE_API_TOKEN in your .env file
+2. Get your token at: https://replicate.com/account/api-tokens
   `);
 });
