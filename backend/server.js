@@ -54,17 +54,15 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // face-to-sticker - creates cartoon/animated style avatars
-        version: "764d4827ea159608a07cdde8ddf1c6c2f6571f8e6beaeb8c9a057d7d4e9b7f5d",
+        // face-to-sticker - creates cartoon/sticker style avatars
+        version: "764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef",
         input: {
           image: image,
+          prompt: "a sticker of a person",
           steps: 20,
           width: 1024,
           height: 1024,
-          prompt: "a sticker of a person, cartoon style, animated, stylized portrait, clean lines, vibrant colors",
           upscale: false,
-          upscale_steps: 10,
-          negative_prompt: "realistic, photo, blurry, lowres",
         },
       }),
     });
