@@ -14,6 +14,7 @@ export const AvatarGenerator: React.FC = () => {
   const [state, setState] = useState<AppState>("capture");
   const [capturedImage, setCapturedImage] = useState<string>("");
   const [avatarImage, setAvatarImage] = useState<string>("");
+  const [modelUrl, setModelUrl] = useState<string>("");
 
   const handleCapture = async (imageSrc: string) => {
     setCapturedImage(imageSrc);
@@ -41,8 +42,9 @@ export const AvatarGenerator: React.FC = () => {
 
       const data = await response.json();
       setAvatarImage(data.avatarUrl);
+      setModelUrl(data.modelUrl || "");
       setState("result");
-      toast.success("Avatar generated successfully!");
+      toast.success("3D Avatar generated successfully!");
     } catch (error) {
       console.error("Error generating avatar:", error);
       toast.error("Failed to generate avatar. Make sure the backend is running.");
@@ -53,6 +55,7 @@ export const AvatarGenerator: React.FC = () => {
   const handleReset = () => {
     setCapturedImage("");
     setAvatarImage("");
+    setModelUrl("");
     setState("capture");
   };
 
@@ -61,10 +64,10 @@ export const AvatarGenerator: React.FC = () => {
       {state === "capture" && (
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
           <h1 className="text-4xl font-bold text-foreground mb-2 text-center">
-            AI Avatar Generator
+            AI 3D Avatar Generator
           </h1>
           <p className="text-muted-foreground mb-8 text-center max-w-md">
-            Capture your photo and let AI create a hyper-realistic portrait avatar
+            Capture your photo and let AI create a rotatable 3D avatar
           </p>
           <WebcamCapture onCapture={handleCapture} />
         </div>
@@ -72,13 +75,14 @@ export const AvatarGenerator: React.FC = () => {
 
       {state === "scanning" && <ScanningOverlay imageSrc={capturedImage} />}
 
-      {state === "generating" && <AILoader text="Generating" />}
+      {state === "generating" && <AILoader text="Creating 3D Model" />}
 
       {state === "result" && (
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen py-8">
           <ResultComparison
             originalImage={capturedImage}
             avatarImage={avatarImage}
+            modelUrl={modelUrl}
             onReset={handleReset}
           />
         </div>
