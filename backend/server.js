@@ -44,11 +44,9 @@ app.post('/generate-avatar', async (req, res) => {
       });
     }
 
-    console.log('Starting avatar generation with InstantID...');
+    console.log('Starting avatar generation...');
 
-    const avatarPrompt = "a lovable, warm, friendly portrait with a gentle smile and soft eyes, realistic skin texture, accurate facial identity, PURE WHITE BACKGROUND (#FFFFFF), clean studio lighting with no shadows behind the subject, centered composition, soft diffused light, smooth complexion, approachable and cute expression, 4k hyper-realistic quality professional headshot";
-
-    // Using zsxkib/instant-id for identity-preserving portrait generation (latest working version)
+    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -56,15 +54,12 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789",
+        // GFPGAN v1.4 - face restoration model
+        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
         input: {
-          image: image,
-          prompt: avatarPrompt,
-          negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, bad proportions, shadows behind subject, dark background, gray background",
-          num_inference_steps: 30,
-          guidance_scale: 5,
-          ip_adapter_scale: 0.8,
-          controlnet_conditioning_scale: 0.8,
+          img: image,
+          version: "v1.4",
+          scale: 2,
         },
       }),
     });
