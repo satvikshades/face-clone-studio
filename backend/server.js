@@ -46,7 +46,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     console.log('Starting avatar generation...');
 
-    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
+    // Using face-to-sticker model for animated/cartoon style avatars
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -54,12 +54,17 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // GFPGAN v1.4 - face restoration model
-        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+        // face-to-sticker - creates cartoon/animated style avatars
+        version: "764d4827ea159608a07cdde8ddf1c6c2f6571f8e6beaeb8c9a057d7d4e9b7f5d",
         input: {
-          img: image,
-          version: "v1.4",
-          scale: 2,
+          image: image,
+          steps: 20,
+          width: 1024,
+          height: 1024,
+          prompt: "a sticker of a person, cartoon style, animated, stylized portrait, clean lines, vibrant colors",
+          upscale: false,
+          upscale_steps: 10,
+          negative_prompt: "realistic, photo, blurry, lowres",
         },
       }),
     });
