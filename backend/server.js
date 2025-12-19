@@ -48,7 +48,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     const avatarPrompt = "a lovable, warm, friendly portrait with a gentle smile and soft eyes, realistic skin texture, accurate facial identity, PURE WHITE BACKGROUND (#FFFFFF), clean studio lighting with no shadows behind the subject, centered composition, soft diffused light, smooth complexion, approachable and cute expression, 4k hyper-realistic quality professional headshot";
 
-    // Using InstantID for identity-preserving portrait generation
+    // Using zsxkib/instant-id for identity-preserving portrait generation (latest working version)
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -56,7 +56,7 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "1a4c182872b82fdac5d6f4938897e5b45fc5517fcd80e44f8c9984955ff8fe67",
+        version: "2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789",
         input: {
           image: image,
           prompt: avatarPrompt,
