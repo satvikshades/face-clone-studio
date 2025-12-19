@@ -51,7 +51,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     // Use Hugging Face's cartoonizer model (instruction-tuning-sd/cartoonizer)
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/instruction-tuning-sd/cartoonizer',
+      'https://router.huggingface.co/hf-inference/models/instruction-tuning-sd/cartoonizer',
       {
         method: 'POST',
         headers: {
