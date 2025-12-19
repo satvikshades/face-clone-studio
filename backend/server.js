@@ -46,7 +46,7 @@ app.post('/generate-avatar', async (req, res) => {
 
     console.log('Starting avatar generation...');
 
-    // Using GFPGAN for face restoration/enhancement - creates high-quality portrait
+    // Using InstantID for identity-preserving professional portrait generation
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -54,12 +54,17 @@ app.post('/generate-avatar', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // GFPGAN v1.4 - face restoration model
-        version: "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+        // InstantID - identity-preserving image generation
+        version: "2e4a90c018f9ab3f85e5d1f97479cfb92655eab7bd2834ebb3eab183c5c20e4a",
         input: {
-          img: image,
-          version: "v1.4",
-          scale: 2,
+          image: image,
+          prompt: "professional studio portrait photo, semi-realistic digital art style, clean smooth skin with natural texture, enhanced facial symmetry, soft studio lighting with gentle shadows, neutral calm expression, light gray gradient background, premium polished look, high-end professional headshot, suitable for corporate profile and digital identity, 8k quality, sharp details",
+          negative_prompt: "cartoon, anime, illustration, painting, sketch, low quality, blurry, distorted face, asymmetric, harsh shadows, busy background, unnatural colors, overprocessed, plastic skin, wrinkles, blemishes, artifacts",
+          num_outputs: 1,
+          guidance_scale: 5,
+          ip_adapter_scale: 0.8,
+          num_inference_steps: 30,
+          controlnet_conditioning_scale: 0.8,
         },
       }),
     });
