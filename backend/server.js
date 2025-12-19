@@ -3,12 +3,11 @@
  * 
  * Setup Instructions:
  * 1. Navigate to the /backend folder
- * 2. Run: npm init -y
- * 3. Run: npm install express cors dotenv replicate
- * 4. Create a .env file with: REPLICATE_API_TOKEN=your_token_here
- * 5. Run: node server.js
+ * 2. Run: npm install
+ * 3. Create a .env file with: HUGGING_FACE_TOKEN=your_token_here
+ * 4. Run: node server.js
  * 
- * Get your Replicate API token at: https://replicate.com/account/api-tokens
+ * Get your free Hugging Face token at: https://huggingface.co/settings/tokens
  */
 
 const express = require('express');
@@ -27,7 +26,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Avatar generation endpoint
+// Avatar generation endpoint using Hugging Face
 app.post('/generate-avatar', async (req, res) => {
   try {
     const { image } = req.body;
@@ -36,55 +35,60 @@ app.post('/generate-avatar', async (req, res) => {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+    const HF_TOKEN = process.env.HUGGING_FACE_TOKEN;
     
-    if (!REPLICATE_API_TOKEN) {
+    if (!HF_TOKEN) {
       return res.status(500).json({ 
-        error: 'REPLICATE_API_TOKEN not configured. Add it to your .env file.' 
+        error: 'HUGGING_FACE_TOKEN not configured. Add it to your .env file.' 
       });
     }
 
-    console.log('Starting avatar generation...');
+    console.log('Starting avatar generation with Hugging Face...');
 
-    // Using face-to-sticker model for animated/cartoon style avatars
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // face-to-sticker - creates cartoon/sticker style avatars
-        version: "764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef",
-        input: {
-          image: image,
-          prompt: "a sticker of a person",
-          steps: 20,
-          width: 1024,
-          height: 1024,
-          upscale: false,
+    // Extract base64 data from data URI
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    // Use Hugging Face's cartoonizer model (instruction-tuning-sd/cartoonizer)
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/instruction-tuning-sd/cartoonizer',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_TOKEN}`,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          inputs: base64Data,
+          parameters: {
+            prompt: "Cartoonize the following image"
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Replicate API error:', errorData);
-      throw new Error('Replicate API request failed: ' + errorData);
+      // Check if model is loading
+      if (response.status === 503) {
+        const data = await response.json();
+        console.log('Model is loading, estimated time:', data.estimated_time);
+        return res.status(503).json({ 
+          error: 'Model is loading, please try again in a few seconds',
+          estimated_time: data.estimated_time 
+        });
+      }
+      
+      const errorText = await response.text();
+      console.error('Hugging Face API error:', errorText);
+      throw new Error('Hugging Face API request failed: ' + errorText);
     }
 
-    const prediction = await response.json();
+    // Get the image as array buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const resultBase64 = Buffer.from(arrayBuffer).toString('base64');
+    const avatarUrl = `data:image/png;base64,${resultBase64}`;
     
-    // Poll for the result
-    const result = await pollForResult(prediction.urls.get, REPLICATE_API_TOKEN);
-    
-    if (result.status === 'failed') {
-      throw new Error(result.error || 'Generation failed');
-    }
-
-    const avatarUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-    
-    console.log('Avatar generated successfully:', avatarUrl);
+    console.log('Avatar generated successfully!');
     res.json({ avatarUrl });
 
   } catch (error) {
@@ -93,38 +97,16 @@ app.post('/generate-avatar', async (req, res) => {
   }
 });
 
-// Helper function to poll for prediction result
-async function pollForResult(url, token, maxAttempts = 60) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Token ${token}`,
-      },
-    });
-    
-    const result = await response.json();
-    
-    if (result.status === 'succeeded' || result.status === 'failed') {
-      return result;
-    }
-    
-    console.log(`Polling attempt ${i + 1}/${maxAttempts}, status: ${result.status}`);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-  
-  throw new Error('Timeout waiting for prediction result');
-}
-
 app.listen(PORT, () => {
   console.log(`
 🚀 Avatar Generator Backend running on http://localhost:${PORT}
 
 Endpoints:
   GET  /health           - Health check
-  POST /generate-avatar  - Generate avatar from base64 image
+  POST /generate-avatar  - Generate cartoon avatar from image
 
 Make sure to:
-1. Set REPLICATE_API_TOKEN in your .env file
-2. Get your token at: https://replicate.com/account/api-tokens
+1. Set HUGGING_FACE_TOKEN in your .env file
+2. Get your FREE token at: https://huggingface.co/settings/tokens
   `);
 });
